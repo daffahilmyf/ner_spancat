@@ -3,7 +3,7 @@ description: "The SpanCategorizer is a component in **spaCy v3.1+** for assignin
 spacy_version: ">=3.1.0,<4.0.0"
 
 vars:
-  config: "spancat"  # "ner"
+  config: "spancat" # "ner"
   gpu: -1
   lang: "id"
   spans_key: "grit"
@@ -11,12 +11,11 @@ vars:
 directories: ["assets", "training", "configs", "metrics", "corpus"]
 
 assets:
-  -
-    dest: "assets/nergrit_ner-grit"
+  - dest: "assets/nergrit_ner-grit"
     git:
-        repo: "https://github.com/indobenchmark/indonlu"
-        branch: "master"
-        path: "dataset/nergrit_ner-grit"
+      repo: "https://github.com/indobenchmark/indonlu"
+      branch: "master"
+      path: "dataset/nergrit_ner-grit"
 
 workflows:
   all:
@@ -25,7 +24,6 @@ workflows:
     - evaluate
 
 commands:
-
   - name: corpus
     help: "Convert the data to spaCy's format"
     script:
@@ -58,7 +56,19 @@ commands:
   - name: evaluate
     help: "Evaluate on the test data and save the metrics"
     script:
-      - "python scripts/evaluate.py ./training/model-best ./corpus/dev.spacy --output ./metrics/${vars.config}.json --gpu-id ${vars.gpu} --spans-key ${vars.spans_key}"
+      - "python scripts/evaluate.py ./training/test/model-best ./corpus/test/dev.spacy --output ./metrics/${vars.config}.json --gpu-id ${vars.gpu} --spans-key ${vars.spans_key}"
+    deps:
+      - "training/annotator-1/pure-normalize/spacy-spancat/overlapping/model-best"
+      - "corpus/annotator-1/pure-normalize/spacy-spancat/overlapping/dev.spacy"
+      - "scripts/evaluate.py"
+    outputs:
+      - "metrics/${vars.config}.json"
+
+    # TODO fix for spancat
+  - name: prodigy-train
+    help: "Train the pipelines with prodigy"
+    script:
+      - "python -m prodigy train --spancat annotator_1, eval:annotator_1_eval --verbose"
     deps:
       - "training/model-best"
       - "corpus/dev.spacy"
@@ -72,3 +82,6 @@ commands:
       - "rm -rf training/*"
       - "rm -rf metrics/*"
       - "rm -rf corpus/*"
+# DONT FORGET
+# python -m spacy train configs/config.cfg -o training/ --paths.train corpus/annotator1/train.spacy --paths.dev corpus/annotator1/dev.spacy
+# python -m prodigy data-to-spacy ./corpus/annotator1 --spancat annotator_1
